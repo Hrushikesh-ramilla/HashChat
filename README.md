@@ -1,8 +1,4 @@
 <div align="center">
-  <img src="docs/assets/screenshots/header.png" alt="HashChat" width="100%"/>
-</div>
-
-<div align="center">
 
 [![CI](https://github.com/Hrushikesh-ramilla/HashChat/actions/workflows/ci.yml/badge.svg)](https://github.com/Hrushikesh-ramilla/HashChat/actions/workflows/ci.yml)
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)](https://openjdk.org/)
@@ -16,6 +12,12 @@
 </div>
 
 ---
+
+<div align="center">
+  <img src="docs/assets/screenshots/header.png" alt="HashChat" width="100%"/>
+</div>
+
+<br/>
 
 <p align="center">
   <img src="docs/assets/screenshots/hero.png" alt="HashChat — chat list, conversation, devices" width="100%"/>
