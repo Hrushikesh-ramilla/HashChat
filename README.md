@@ -9,7 +9,7 @@
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7-red?logo=redis&logoColor=white)](https://redis.io/)
-[![License](https://img.shields.io/badge/license-MIT-green)](#)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 </div>
 
@@ -319,6 +319,18 @@ Good starting point for:
 - Learning realtime architecture on Spring Boot
 - Android client with proper Keystore integration
 - Implementing full Double Ratchet step by step
+
+---
+
+---
+
+## License
+
+This project is licensed under the Apache License 2.0.
+
+Copyright 2025 Hrushikesh Ramilla
+
+See the [LICENSE](LICENSE) file for details.
 
 ---
 
