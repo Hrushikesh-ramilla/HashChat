@@ -1,13 +1,24 @@
 package com.hashchat.messenger.user.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import com.hashchat.messenger.chat.dto.ChatListUpdateEvent;
+import com.hashchat.messenger.chat.repository.ChatParticipantRepository;
+import com.hashchat.messenger.common.TransactionUtils;
+import com.hashchat.messenger.infra.security.JwtService;
+import com.hashchat.messenger.user.domain.User;
 import com.hashchat.messenger.user.dto.CurrentUserResponse;
 import com.hashchat.messenger.user.dto.UpdateProfileRequest;
+import com.hashchat.messenger.user.dto.UpdateProfileResponse;
 import com.hashchat.messenger.user.dto.UserProfileResponse;
+import com.hashchat.messenger.user.dto.UserSearchResponse;
 import com.hashchat.messenger.user.dto.UserSummaryResponse;
 import com.hashchat.messenger.user.repository.UserRepository;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
@@ -16,11 +27,33 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserIdentityService userIdentityService;
+    private final JwtService jwtService;
+    private final ChatParticipantRepository participantRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public UserSummaryResponse findByUsername(String username) {
         var user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new NoSuchElementException("User not found: " + username));
         return new UserSummaryResponse(user.getId(), user.getUsername());
+    }
+
+
+    public List<UserSearchResponse> searchUsers(String q) {
+        String query = q == null ? "" : q.trim();
+        if (query.length() < 2) {
+            return List.of();
+        }
+
+        return userRepository.findByUsernameContainingIgnoreCase(query, PageRequest.of(0, 20))
+                .stream()
+                .map(u -> new UserSearchResponse(
+                        u.getId(),
+                        u.getUsername(),
+                        u.getFirstName(),
+                        u.getLastName(),
+                        u.getAvatarUrl()
+                ))
+                .toList();
     }
 
     public CurrentUserResponse getCurrentUser(String identity) {
@@ -38,17 +71,11 @@ public class UserService {
 
     public UserProfileResponse getProfile(String identity) {
         var user = userIdentityService.require(identity);
-        return new UserProfileResponse(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getAvatarUrl()
-        );
+        return toProfileResponse(user);
     }
 
-    public UserProfileResponse updateProfile(String currentIdentity, UpdateProfileRequest request) {
+    @Transactional
+    public UpdateProfileResponse updateProfile(String currentIdentity, UpdateProfileRequest request) {
         var user = userIdentityService.require(currentIdentity);
 
         if (request.getFirstName() != null) {
@@ -81,7 +108,24 @@ public class UserService {
         }
 
         user = userRepository.save(user);
+        UserProfileResponse updated = toProfileResponse(user);
+        String token = jwtService.generateToken(updated.getUsername());
 
+        Long updatedUserId = updated.getId();
+        TransactionUtils.afterCommit(() -> notifySharedChatsAboutProfileUpdate(updatedUserId));
+
+        return new UpdateProfileResponse(
+                updated.getId(),
+                updated.getUsername(),
+                updated.getEmail(),
+                updated.getFirstName(),
+                updated.getLastName(),
+                updated.getAvatarUrl(),
+                token
+        );
+    }
+
+    private UserProfileResponse toProfileResponse(User user) {
         return new UserProfileResponse(
                 user.getId(),
                 user.getUsername(),
@@ -90,5 +134,15 @@ public class UserService {
                 user.getLastName(),
                 user.getAvatarUrl()
         );
+    }
+
+    private void notifySharedChatsAboutProfileUpdate(Long updatedUserId) {
+        ChatListUpdateEvent payload = ChatListUpdateEvent.profileUpdated(updatedUserId);
+
+        participantRepository.findDistinctUsernamesSharingChatsWithUserId(updatedUserId)
+                .forEach(username -> messagingTemplate.convertAndSend(
+                        "/topic/users/" + username + "/chats",
+                        payload
+                ));
     }
 }
