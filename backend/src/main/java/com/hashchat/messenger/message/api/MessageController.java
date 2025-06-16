@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import com.hashchat.messenger.crypto.device.CurrentDeviceService;
 import com.hashchat.messenger.crypto.dto.EncryptedEditMessageRequestV2;
 import com.hashchat.messenger.crypto.dto.EncryptedSendMessageRequestV2;
+import com.hashchat.messenger.message.dto.DeleteMessageResponse;
 import com.hashchat.messenger.message.dto.DeviceMessageEventResponse;
 import com.hashchat.messenger.message.dto.MessageTimelineItemResponse;
 import com.hashchat.messenger.message.dto.UpdateMessageStatusRequest;
@@ -15,7 +16,6 @@ import com.hashchat.messenger.message.service.MessageService;
 import com.hashchat.messenger.message.service.MessageService.ReactionEvent;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/messages")
@@ -80,10 +80,10 @@ public class MessageController {
     }
 
     @DeleteMapping("/{messageId}")
-    public Map<String, Object> deleteMessage(@PathVariable Long messageId, Authentication authentication) {
+    public DeleteMessageResponse deleteMessage(@PathVariable Long messageId, Authentication authentication) {
         currentDeviceService.requireCurrentDevice();
         messageService.deleteMessage(authentication.getName(), messageId);
-        return Map.of("success", true);
+        return new DeleteMessageResponse(true);
     }
 
     @Data
