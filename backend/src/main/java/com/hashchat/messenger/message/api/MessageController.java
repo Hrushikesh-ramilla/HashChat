@@ -1,7 +1,6 @@
 package com.hashchat.messenger.message.api;
 
 import jakarta.validation.Valid;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -11,9 +10,10 @@ import com.hashchat.messenger.crypto.dto.EncryptedSendMessageRequestV2;
 import com.hashchat.messenger.message.dto.DeleteMessageResponse;
 import com.hashchat.messenger.message.dto.DeviceMessageEventResponse;
 import com.hashchat.messenger.message.dto.MessageTimelineItemResponse;
+import com.hashchat.messenger.message.dto.ReactionRequest;
 import com.hashchat.messenger.message.dto.UpdateMessageStatusRequest;
 import com.hashchat.messenger.message.service.MessageService;
-import com.hashchat.messenger.message.service.MessageService.ReactionEvent;
+import com.hashchat.messenger.message.dto.ReactionEvent;
 
 import java.util.List;
 
@@ -58,7 +58,7 @@ public class MessageController {
     @PostMapping("/status")
     public void updateStatus(@Valid @RequestBody UpdateMessageStatusRequest request, Authentication authentication) {
         currentDeviceService.requireCurrentDevice();
-        messageService.updateMessageStatus(authentication.getName(), request.getMessageId(), request.getStatus());
+        messageService.updateMessageStatus(authentication.getName(), request.messageId(), request.status());
     }
 
     @PutMapping("/{messageId}/encrypted/v2")
@@ -76,7 +76,7 @@ public class MessageController {
             @Valid @RequestBody ReactionRequest request,
             Authentication authentication) {
         currentDeviceService.requireCurrentDevice();
-        return messageService.toggleReaction(authentication.getName(), messageId, request.getEmoji());
+        return messageService.toggleReaction(authentication.getName(), messageId, request.emoji());
     }
 
     @DeleteMapping("/{messageId}")
@@ -84,15 +84,5 @@ public class MessageController {
         currentDeviceService.requireCurrentDevice();
         messageService.deleteMessage(authentication.getName(), messageId);
         return new DeleteMessageResponse(true);
-    }
-
-    @Data
-    public static class ReactionRequest {
-        private String emoji;
-    }
-
-    @Data
-    public static class EditMessageRequest {
-        private String content;
     }
 }
