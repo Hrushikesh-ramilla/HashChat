@@ -66,6 +66,21 @@ const [deleteTarget,   setDeleteTarget]   = useState(null);
 
   const activeChat = chatStore.chats.find(c => c.id === chatStore.activeId);
   const activeMsgs = msgStore.msgs[chatStore.activeId] || [];
+  const refreshTimeoutRef = useRef(null);
+
+  const scheduleChatsRefresh = () => {
+    if (refreshTimeoutRef.current) return;
+    refreshTimeoutRef.current = window.setTimeout(() => {
+      refreshTimeoutRef.current = null;
+      chatStore.loadChats(auth.me?.id);
+    }, 220);
+  };
+  useEffect(() => () => {
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = null;
+    }
+  }, []);
 
   const searchCount = useMemo(() => {
     if (!messageSearch.trim()) return 0;
@@ -150,7 +165,7 @@ const [deleteTarget,   setDeleteTarget]   = useState(null);
       }
     },
 
-    onChatListUpdate: () => chatStore.loadChats(auth.me?.id),
+    onChatListUpdate: () => scheduleChatsRefresh(),
 
     onStatusUpdate: (data) => {
       if (data.type === "delivery" && data.messageId) {
@@ -175,6 +190,13 @@ const [deleteTarget,   setDeleteTarget]   = useState(null);
           return p;
         });
       }, 3000);
+    },
+    onConnectionState: ({ connected, isReconnect }) => {
+      if (!connected || !isReconnect) return;
+      scheduleChatsRefresh();
+      if (chatStore.activeId) {
+        msgStore.loadMessages(chatStore.activeId);
+      }
     },
   });
 
@@ -287,11 +309,11 @@ const [deleteTarget,   setDeleteTarget]   = useState(null);
 
   const beginDelete = (msg) => { setCtx(null); setDeleteTarget(msg); };
 
-  const confirmDelete = async (scope) => {
+  const confirmDelete = (scope) => {
     if (!deleteTarget || !chatStore.activeId) return;
-    const deleted = await msgStore.deleteMessage(chatStore.activeId, deleteTarget, scope);
+    msgStore.deleteMessage(chatStore.activeId, deleteTarget, scope);
     setDeleteTarget(null);
-    if (deleted && scope === "everyone") {
+    if (scope === "everyone") {
       setTimeout(() => chatStore.loadChats(auth.me?.id), 250);
     }
   };
