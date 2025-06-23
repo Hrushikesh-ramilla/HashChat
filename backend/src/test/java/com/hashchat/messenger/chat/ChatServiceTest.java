@@ -13,7 +13,10 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.hashchat.messenger.TestFixtures;
 import com.hashchat.messenger.chat.domain.Chat;
 import com.hashchat.messenger.chat.domain.ChatParticipant;
+import com.hashchat.messenger.chat.domain.GroupRole;
 import com.hashchat.messenger.chat.dto.ChatResponse;
+import com.hashchat.messenger.chat.dto.UpdateGroupParticipantsRequest;
+import com.hashchat.messenger.chat.dto.UpdateGroupRoleRequest;
 import com.hashchat.messenger.chat.repository.ChatParticipantRepository;
 import com.hashchat.messenger.chat.repository.ChatRepository;
 import com.hashchat.messenger.chat.service.ChatService;
@@ -158,13 +161,20 @@ class ChatServiceTest {
 
             Chat saved = TestFixtures.groupChat(20L, "Team");
             when(chatRepository.save(any())).thenReturn(saved);
-            when(participantRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(participantRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
             Long chatId = chatService.createGroupChat("alice", "Team", List.of(2L, 3L));
 
             assertThat(chatId).isEqualTo(20L);
-            // alice + bob + charlie = 3 rows in chat_participants
-            verify(participantRepository, times(3)).save(any());
+            // alice + bob + charlie = 3 rows in chat_participants, persisted as one batch
+            verify(participantRepository).saveAll(argThat((Iterable<ChatParticipant> participants) -> {
+                int count = 0;
+                for (ChatParticipant ignored : participants) {
+                    count++;
+                }
+                return count == 3;
+            }));
+            verify(participantRepository, never()).save(any());
         }
 
         @Test
@@ -222,6 +232,113 @@ class ChatServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("inviteGroupParticipants")
+    class InviteGroupParticipants {
+        @Test
+        @DisplayName("invites new users when actor has permission")
+        void invitesUsers() {
+            User charlie = TestFixtures.user(3L, "charlie");
+            Chat group = TestFixtures.groupChat(20L, "Team");
+            group.setWhoCanInvite("ADMINS");
+
+            when(userRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
+            when(chatRepository.findById(20L)).thenReturn(Optional.of(group));
+            when(participantRepository.findByChatIdAndUserId(20L, 1L))
+                    .thenReturn(Optional.of(new ChatParticipant(20L, 1L, GroupRole.OWNER)));
+            when(participantRepository.findByChatId(20L)).thenReturn(List.of(
+                    new ChatParticipant(20L, 1L, GroupRole.OWNER),
+                    new ChatParticipant(20L, 2L, GroupRole.MEMBER)
+            ));
+            when(userRepository.findAllById(List.of(3L))).thenReturn(List.of(charlie));
+            when(participantRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+            when(chatRepository.findChatIdsByUserIdOrderByActivity(1L, 100, 0)).thenReturn(List.of(20L));
+            when(chatRepository.findByIdIn(List.of(20L))).thenReturn(List.of(group));
+            when(participantRepository.findByChatIdIn(List.of(20L))).thenReturn(List.of(
+                    new ChatParticipant(20L, 1L, GroupRole.OWNER),
+                    new ChatParticipant(20L, 2L, GroupRole.MEMBER),
+                    new ChatParticipant(20L, 3L, GroupRole.MEMBER)
+            ));
+            when(userRepository.findAllById(anySet())).thenReturn(List.of(bob, charlie));
+            when(unreadService.get(1L, 20L)).thenReturn(0L);
+
+            ChatResponse response = chatService.inviteGroupParticipants(
+                    "alice",
+                    20L,
+                    new UpdateGroupParticipantsRequest(List.of(3L))
+            );
+
+            assertThat(response.chatId()).isEqualTo(20L);
+            verify(participantRepository).saveAll(anyList());
+        }
+    }
+
+    @Nested
+    @DisplayName("RBAC matrix")
+    class RbacMatrix {
+        @Test
+        void adminCannotAssignAdminRole() {
+            Chat group = TestFixtures.groupChat(20L, "Team");
+            when(userRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
+            when(chatRepository.findById(20L)).thenReturn(Optional.of(group));
+            when(participantRepository.findByChatIdAndUserId(20L, 1L))
+                    .thenReturn(Optional.of(new ChatParticipant(20L, 1L, GroupRole.ADMIN)));
+            when(participantRepository.findByChatIdAndUserId(20L, 2L))
+                    .thenReturn(Optional.of(new ChatParticipant(20L, 2L, GroupRole.MEMBER)));
+
+            assertThatThrownBy(() -> chatService.updateGroupParticipantRole(
+                    "alice", 20L, 2L, new UpdateGroupRoleRequest("ADMIN")))
+                    .isInstanceOf(ChatException.class)
+                    .hasMessageContaining("cannot assign admin role");
+        }
+
+        @Test
+        void moderatorCannotChangeRoles() {
+            Chat group = TestFixtures.groupChat(20L, "Team");
+            when(userRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
+            when(chatRepository.findById(20L)).thenReturn(Optional.of(group));
+            when(participantRepository.findByChatIdAndUserId(20L, 1L))
+                    .thenReturn(Optional.of(new ChatParticipant(20L, 1L, GroupRole.MODERATOR)));
+            when(participantRepository.findByChatIdAndUserId(20L, 2L))
+                    .thenReturn(Optional.of(new ChatParticipant(20L, 2L, GroupRole.MEMBER)));
+
+            assertThatThrownBy(() -> chatService.updateGroupParticipantRole(
+                    "alice", 20L, 2L, new UpdateGroupRoleRequest("MEMBER")))
+                    .isInstanceOf(ChatException.class)
+                    .hasMessageContaining("Moderators cannot change participant roles");
+        }
+
+        @Test
+        void adminCannotMuteOwner() {
+            Chat group = TestFixtures.groupChat(20L, "Team");
+            when(userRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
+            when(chatRepository.findById(20L)).thenReturn(Optional.of(group));
+            when(participantRepository.findByChatIdAndUserId(20L, 1L))
+                    .thenReturn(Optional.of(new ChatParticipant(20L, 1L, GroupRole.ADMIN)));
+            when(participantRepository.findByChatIdAndUserId(20L, 2L))
+                    .thenReturn(Optional.of(new ChatParticipant(20L, 2L, GroupRole.OWNER)));
+
+            assertThatThrownBy(() -> chatService.muteGroupParticipant("alice", 20L, 2L, 15))
+                    .isInstanceOf(ChatException.class)
+                    .hasMessageContaining("Owner cannot be targeted");
+        }
+
+        @Test
+        void moderatorCannotModerateAdmin() {
+            Chat group = TestFixtures.groupChat(20L, "Team");
+            when(userRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
+            when(chatRepository.findById(20L)).thenReturn(Optional.of(group));
+            when(participantRepository.findByChatIdAndUserId(20L, 1L))
+                    .thenReturn(Optional.of(new ChatParticipant(20L, 1L, GroupRole.MODERATOR)));
+            when(participantRepository.findByChatIdAndUserId(20L, 2L))
+                    .thenReturn(Optional.of(new ChatParticipant(20L, 2L, GroupRole.ADMIN)));
+
+            assertThatThrownBy(() -> chatService.banGroupParticipant("alice", 20L, 2L, "policy"))
+                    .isInstanceOf(ChatException.class)
+                    .hasMessageContaining("only moderate members");
+        }
+    }
+
     // ─── getMyChats ──────────────────────────────────────────────────────────
 
     @Nested
@@ -232,7 +349,7 @@ class ChatServiceTest {
         @DisplayName("returns an empty list when there are no chats")
         void returnsEmptyList() {
             when(userRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
-            when(participantRepository.findByUserId(1L)).thenReturn(List.of());
+            when(chatRepository.findChatIdsByUserIdOrderByActivity(1L, 100, 0)).thenReturn(List.of());
 
             assertThat(chatService.getMyChats("alice")).isEmpty();
         }
@@ -245,7 +362,7 @@ class ChatServiceTest {
             ChatParticipant pBob   = TestFixtures.participant(5L, 2L);
 
             when(userRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
-            when(participantRepository.findByUserId(1L)).thenReturn(List.of(pAlice));
+            when(chatRepository.findChatIdsByUserIdOrderByActivity(1L, 100, 0)).thenReturn(List.of(5L));
             when(chatRepository.findByIdIn(List.of(5L))).thenReturn(List.of(chat));
             when(participantRepository.findByChatIdIn(List.of(5L))).thenReturn(List.of(pAlice, pBob));
             when(userRepository.findAllById(anySet())).thenReturn(List.of(bob));
@@ -271,7 +388,7 @@ class ChatServiceTest {
             ChatParticipant pBob   = TestFixtures.participant(7L, 2L);
 
             when(userRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
-            when(participantRepository.findByUserId(1L)).thenReturn(List.of(pAlice));
+            when(chatRepository.findChatIdsByUserIdOrderByActivity(1L, 100, 0)).thenReturn(List.of(7L));
             when(chatRepository.findByIdIn(List.of(7L))).thenReturn(List.of(group));
             when(participantRepository.findByChatIdIn(List.of(7L))).thenReturn(List.of(pAlice, pBob));
             when(userRepository.findAllById(anySet())).thenReturn(List.of(bob));
