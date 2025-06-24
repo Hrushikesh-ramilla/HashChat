@@ -9,16 +9,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import com.hashchat.messenger.TestFixtures;
-import com.hashchat.messenger.auth.service.DeviceRegistrationTokenService;
 import com.hashchat.messenger.common.exception.AuthException;
 import com.hashchat.messenger.crypto.device.DeviceService;
 import com.hashchat.messenger.crypto.device.UserDevice;
 import com.hashchat.messenger.crypto.device.UserDeviceRepository;
-import com.hashchat.messenger.crypto.dto.DeviceRegistrationRequest;
-import com.hashchat.messenger.crypto.dto.DeviceRegistrationResponse;
-import com.hashchat.messenger.crypto.dto.OneTimePreKeyDto;
-import com.hashchat.messenger.crypto.dto.SignedPreKeyDto;
-import com.hashchat.messenger.crypto.dto.UserDeviceResponse;
+import com.hashchat.messenger.crypto.dto.*;
 import com.hashchat.messenger.crypto.prekey.OneTimePreKey;
 import com.hashchat.messenger.crypto.prekey.OneTimePreKeyRepository;
 import com.hashchat.messenger.crypto.prekey.SignedPreKey;
@@ -41,20 +36,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class DeviceServiceTest {
 
-    @Mock UserRepository userRepository;
-    @Mock UserIdentityService userIdentityService;
-    @Mock UserDeviceRepository userDeviceRepository;
-    @Mock SignedPreKeyRepository signedPreKeyRepository;
-    @Mock OneTimePreKeyRepository oneTimePreKeyRepository;
+    @Mock
+    UserRepository userRepository;
+    @Mock
+    UserIdentityService userIdentityService;
+    @Mock
+    UserDeviceRepository userDeviceRepository;
+    @Mock
+    SignedPreKeyRepository signedPreKeyRepository;
+    @Mock
+    OneTimePreKeyRepository oneTimePreKeyRepository;
 
-    @InjectMocks DeviceService deviceService;
+    @InjectMocks
+    DeviceService deviceService;
 
     private User alice;
     private User bob;
