@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hashchat-frontend
+  namespace: hashchat
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hashchat-frontend
+  template:
+    metadata:
+      labels:
+        app: hashchat-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ${REGISTRY:-ghcr.io}/${REPOSITORY:-hashchat}/frontend:${TAG:-latest}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              name: http
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hashchat-frontend
+  namespace: hashchat
+spec:
+  selector:
+    app: hashchat-frontend
+  ports:
+    - port: 80
+      targetPort: 80
