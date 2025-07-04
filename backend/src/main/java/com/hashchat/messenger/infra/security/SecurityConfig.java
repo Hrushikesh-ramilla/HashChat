@@ -28,6 +28,9 @@ public class SecurityConfig {
     @Value("${hashchat.security.public-prometheus-enabled:false}")
     private boolean publicPrometheusEnabled;
 
+    @Value("${hashchat.demo.enabled:false}")
+    private boolean demoEnabled;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -43,6 +46,7 @@ public class SecurityConfig {
                         .requestMatchers(publicEndpoints()).permitAll()
                         .requestMatchers(publicDocsEnabled ? docsEndpoints() : new String[0]).permitAll()
                         .requestMatchers(publicPrometheusEnabled ? prometheusEndpoint() : new String[0]).permitAll()
+                        .requestMatchers(demoEnabled ? "/api/demo/**" : "/nothing-match-404").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated()
                 )
@@ -52,7 +56,7 @@ public class SecurityConfig {
     }
 
     private String[] publicEndpoints() {
-        return new String[]{
+        return new String[] {
                 "/",
                 "/index.html",
                 "/error",
@@ -72,7 +76,7 @@ public class SecurityConfig {
     }
 
     private String[] docsEndpoints() {
-        return new String[]{
+        return new String[] {
                 "/swagger-ui.html",
                 "/swagger-ui/**",
                 "/api-docs",
@@ -81,6 +85,6 @@ public class SecurityConfig {
     }
 
     private String[] prometheusEndpoint() {
-        return new String[]{"/actuator/prometheus"};
+        return new String[] { "/actuator/prometheus" };
     }
 }
