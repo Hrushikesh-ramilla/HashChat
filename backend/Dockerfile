@@ -10,7 +10,7 @@ RUN addgroup --system --gid 1001 hashchat && \
     adduser --system --uid 1001 --ingroup hashchat hashchat
 WORKDIR /app
 COPY --from=build /build/target/app.jar app.jar
-RUN chown hashchat:hashchat /app/app.jar
+RUN mkdir -p /app/logs && chown -R hashchat:hashchat /app
 USER hashchat
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
