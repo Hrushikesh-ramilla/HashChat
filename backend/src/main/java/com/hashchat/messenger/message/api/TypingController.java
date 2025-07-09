@@ -7,11 +7,10 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
-import com.hashchat.messenger.chat.repository.ChatParticipantRepository;
 import com.hashchat.messenger.infra.ws.WebSocketAuthChannelInterceptor;
+import com.hashchat.messenger.message.application.TypingService;
 import com.hashchat.messenger.message.dto.TypingEvent;
 import com.hashchat.messenger.message.dto.TypingRequest;
-import com.hashchat.messenger.user.service.UserIdentityService;
 
 @Slf4j
 @Controller
@@ -20,8 +19,7 @@ public class TypingController {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final WebSocketAuthChannelInterceptor authInterceptor;
-    private final UserIdentityService userIdentityService;
-    private final ChatParticipantRepository participantRepository;
+    private final TypingService typingService;
 
     @MessageMapping("/typing")
     public void typing(@Payload TypingRequest request, @Header("simpSessionId") String sessionId) {
@@ -37,9 +35,7 @@ public class TypingController {
             return;
         }
 
-        var user = userIdentityService.resolve(username).orElse(null);
-        if (user == null || !participantRepository.existsByChatIdAndUserId(request.chatId(), user.getId())) {
-            log.warn("Typing event denied for user={} chatId={}", username, request.chatId());
+        if (!typingService.isTypingAllowed(username, request.chatId())) {
             return;
         }
 
