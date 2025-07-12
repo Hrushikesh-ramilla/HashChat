@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.hashchat.messenger.chat.domain.Message;
 import com.hashchat.messenger.common.TransactionUtils;
 import com.hashchat.messenger.common.exception.MessageException;
-import com.hashchat.messenger.crypto.device.CurrentDeviceService;
 import com.hashchat.messenger.crypto.device.UserDevice;
 import com.hashchat.messenger.message.access.MessageAccessService;
 import com.hashchat.messenger.message.domain.MessageReaction;
@@ -143,7 +142,9 @@ public class MessageReactionService {
     }
 
     public Set<String> myReactions(Long messageId, Long userId) {
-        if (userId == null) return Set.of();
+        if (userId == null) {
+            return Set.of();
+        }
         return messageReactionRepository.findByMessageId(messageId)
                 .stream()
                 .filter(r -> Objects.equals(r.getUserId(), userId))

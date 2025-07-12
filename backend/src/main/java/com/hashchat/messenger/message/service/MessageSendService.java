@@ -14,7 +14,6 @@ import com.hashchat.messenger.chat.repository.ChatRepository;
 import com.hashchat.messenger.common.TransactionUtils;
 import com.hashchat.messenger.common.exception.ChatException;
 import com.hashchat.messenger.common.exception.MessageException;
-import com.hashchat.messenger.crypto.device.CurrentDeviceService;
 import com.hashchat.messenger.crypto.device.UserDevice;
 import com.hashchat.messenger.crypto.device.UserDeviceRepository;
 import com.hashchat.messenger.crypto.dto.EncryptedMessageEnvelopeInput;

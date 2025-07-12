@@ -11,6 +11,7 @@ import com.hashchat.messenger.user.domain.User;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.hashchat.messenger.chat.repository.ChatParticipantRepository;
 import com.hashchat.messenger.infra.security.JwtService;
+import com.hashchat.messenger.outbox.OutboxService;
 import com.hashchat.messenger.user.dto.UpdateProfileRequest;
 import com.hashchat.messenger.user.repository.UserRepository;
 import com.hashchat.messenger.user.service.UserIdentityService;
@@ -33,6 +34,7 @@ class UserServiceTest {
     @Mock JwtService jwtService;
     @Mock ChatParticipantRepository participantRepository;
     @Mock SimpMessagingTemplate messagingTemplate;
+    @Mock OutboxService outboxService;
 
     @InjectMocks UserService userService;
 

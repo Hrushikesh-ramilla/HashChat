@@ -21,7 +21,6 @@ import com.hashchat.messenger.message.domain.MessageReaction;
 import com.hashchat.messenger.message.dto.DeviceMessageEventResponse;
 import com.hashchat.messenger.message.dto.ReactionEvent;
 import com.hashchat.messenger.message.dto.TimelineEnvelopeDto;
-import com.hashchat.messenger.message.repository.MessageEnvelopeRepository;
 import com.hashchat.messenger.message.repository.MessageEventRepository;
 import com.hashchat.messenger.message.repository.MessageReactionRepository;
 import com.hashchat.messenger.outbox.OutboxService;
@@ -63,8 +62,11 @@ public class MessageFanoutService {
     @Value("${hashchat.kafka.enabled:false}")
     private boolean kafkaEnabled;
 
-    private record StatusBulkUpdateEvent(String type, Long chatId, String status, Long actorUserId) {}
-    private record StatusUpdateEvent(Long messageId, String status) {}
+    private record StatusBulkUpdateEvent(String type, Long chatId, String status, Long actorUserId) {
+    }
+
+    private record StatusUpdateEvent(Long messageId, String status) {
+    }
 
     public void fanoutCreatedEvent(Message message, Map<String, MessageEnvelope> byDevice) {
         if (!kafkaEnabled) {
@@ -140,7 +142,9 @@ public class MessageFanoutService {
     }
 
     public void sendBulkStatusToSenderDevices(Collection<Long> senderIds, Long chatId, String status, Long actorUserId) {
-        if (senderIds == null || senderIds.isEmpty()) return;
+        if (senderIds == null || senderIds.isEmpty()) {
+            return;
+        }
 
         if (!kafkaEnabled) {
             StatusBulkUpdateEvent event = new StatusBulkUpdateEvent("delivery_bulk", chatId, status, actorUserId);
@@ -191,13 +195,17 @@ public class MessageFanoutService {
         List<String> targets = usernames.stream()
                 .filter(u -> !Objects.equals(u, sender.getUsername()))
                 .toList();
-        if (targets.isEmpty()) return;
+        if (targets.isEmpty()) {
+            return;
+        }
 
         Map<String, Boolean> onlineStatus = onlineService.isOnlineMany(targets);
         List<String> offlineUsernames = targets.stream()
                 .filter(u -> !onlineStatus.getOrDefault(u, false))
                 .toList();
-        if (offlineUsernames.isEmpty()) return;
+        if (offlineUsernames.isEmpty()) {
+            return;
+        }
 
         Map<String, User> usersByUsername = userRepository.findByUsernameIn(offlineUsernames)
                 .stream()
@@ -275,11 +283,17 @@ public class MessageFanoutService {
     }
 
     public void incrementCounter(String name) {
-        try { meterRegistry.counter(name).increment(); } catch (Exception ignored) {}
+        try {
+            meterRegistry.counter(name).increment();
+        } catch (Exception ignored) {
+        }
     }
 
     public void incrementCounter(String name, double amount) {
-        try { meterRegistry.counter(name).increment(amount); } catch (Exception ignored) {}
+        try {
+            meterRegistry.counter(name).increment(amount);
+        } catch (Exception ignored) {
+        }
     }
 
     private void writeOutboxEvent(String aggregateType, String aggregateId, String eventType, Object mainPayload, Map<String, MessageEnvelope> byDevice) {
@@ -303,7 +317,11 @@ public class MessageFanoutService {
                 ).stream().map(UserDevice::getDeviceId).toList());
                 payload.put("participantUsernames", participantRepository.findDistinctUsernamesByChatId(re.chatId()));
             } else if (mainPayload instanceof Map<?, ?> map && !map.containsKey("participantUsernames")) {
-                payload.putAll((Map<String, Object>) map);
+                map.forEach((key, value) -> {
+                    if (key instanceof String stringKey) {
+                        payload.put(stringKey, value);
+                    }
+                });
             }
             outboxService.write(aggregateType, aggregateId, eventType, payload);
         } catch (Exception e) {
@@ -322,7 +340,9 @@ public class MessageFanoutService {
     }
 
     private Set<String> myReactions(Long messageId, Long userId) {
-        if (userId == null) return Set.of();
+        if (userId == null) {
+            return Set.of();
+        }
         return messageReactionRepository.findByMessageId(messageId)
                 .stream()
                 .filter(r -> Objects.equals(r.getUserId(), userId))

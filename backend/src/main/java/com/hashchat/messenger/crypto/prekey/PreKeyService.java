@@ -1,8 +1,8 @@
 package com.hashchat.messenger.crypto.prekey;
 
-
 import com.hashchat.messenger.user.service.UserIdentityService;
-import com.hashchat.messenger.common.exception.*;
+import com.hashchat.messenger.common.exception.ChatException;
+import com.hashchat.messenger.common.exception.CryptoException;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -11,7 +11,11 @@ import com.hashchat.messenger.chat.repository.ChatParticipantRepository;
 import com.hashchat.messenger.crypto.device.CurrentDeviceService;
 import com.hashchat.messenger.crypto.device.UserDevice;
 import com.hashchat.messenger.crypto.device.UserDeviceRepository;
-import com.hashchat.messenger.crypto.dto.*;
+import com.hashchat.messenger.crypto.dto.DeviceBundleDto;
+import com.hashchat.messenger.crypto.dto.OneTimePreKeyDto;
+import com.hashchat.messenger.crypto.dto.PreKeyBundleResponse;
+import com.hashchat.messenger.crypto.dto.ResolvedChatDevicesResponse;
+import com.hashchat.messenger.crypto.dto.SignedPreKeyDto;
 import com.hashchat.messenger.user.domain.User;
 
 import java.time.LocalDateTime;
@@ -242,5 +246,6 @@ public class PreKeyService {
     private record ReadOnlyPreKeys(
             Map<Long, SignedPreKey> signedByDeviceId,
             Map<Long, OneTimePreKey> oneTimeByDeviceId
-    ) {}
+    ) {
+    }
 }

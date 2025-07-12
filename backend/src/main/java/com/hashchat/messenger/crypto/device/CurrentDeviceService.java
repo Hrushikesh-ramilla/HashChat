@@ -1,8 +1,7 @@
 package com.hashchat.messenger.crypto.device;
 
-
 import com.hashchat.messenger.user.service.UserIdentityService;
-import com.hashchat.messenger.common.exception.*;
+import com.hashchat.messenger.common.exception.AuthException;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

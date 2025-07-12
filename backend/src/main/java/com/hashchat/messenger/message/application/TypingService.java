@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import com.hashchat.messenger.chat.repository.ChatParticipantRepository;
-import com.hashchat.messenger.user.domain.User;
 import com.hashchat.messenger.user.service.UserIdentityService;
 
 @Slf4j

@@ -5,7 +5,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.hashchat.messenger.chat.domain.Message;
-import com.hashchat.messenger.crypto.device.UserDevice;
 import com.hashchat.messenger.message.access.MessageAccessService;
 import com.hashchat.messenger.message.domain.MessageEnvelope;
 import com.hashchat.messenger.message.dto.MessageTimelineItemResponse;
