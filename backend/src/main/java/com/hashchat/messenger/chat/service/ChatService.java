@@ -3,6 +3,7 @@ package com.hashchat.messenger.chat.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.hashchat.messenger.chat.access.ChatQueryService;
 import com.hashchat.messenger.chat.dto.*;
 
 import java.util.List;
@@ -14,6 +15,7 @@ public class ChatService {
     private final DirectChatService directChatService;
     private final SavedMessagesService savedMessagesService;
     private final GroupModerationService groupModerationService;
+    private final ChatQueryService chatQueryService;
 
     @Transactional
     public Long createDirectChat(String currentUsername, Long targetUserId) {
@@ -98,5 +100,15 @@ public class ChatService {
     @Transactional
     public ChatResponse unbanGroupParticipant(String username, Long chatId, Long targetUserId) {
         return groupModerationService.unbanGroupParticipant(username, chatId, targetUserId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChatResponse> getMyChats(String username, int offset, int limit) {
+        return chatQueryService.getMyChats(username, offset, limit);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChatResponse> getMyDirectRequests(String username, int offset, int limit) {
+        return chatQueryService.getMyDirectRequests(username, offset, limit);
     }
 }

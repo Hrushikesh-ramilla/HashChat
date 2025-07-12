@@ -8,14 +8,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
-import com.hashchat.messenger.TestFixtures;
-import com.hashchat.messenger.chat.repository.ChatParticipantRepository;
 import com.hashchat.messenger.crypto.device.CurrentDeviceService;
 import com.hashchat.messenger.crypto.device.UserDevice;
 import com.hashchat.messenger.crypto.dto.EncryptedEditMessageRequestV2;
 import com.hashchat.messenger.crypto.dto.EncryptedMessageEnvelopeInput;
 import com.hashchat.messenger.crypto.dto.EncryptedSendMessageRequestV2;
 import com.hashchat.messenger.infra.ws.WebSocketAuthChannelInterceptor;
+import com.hashchat.messenger.message.application.TypingService;
 import com.hashchat.messenger.message.dto.DeviceMessageEventResponse;
 import com.hashchat.messenger.message.dto.MessageTimelineItemResponse;
 import com.hashchat.messenger.message.dto.ReactionEvent;
@@ -24,12 +23,10 @@ import com.hashchat.messenger.message.dto.TypingEvent;
 import com.hashchat.messenger.message.dto.TypingRequest;
 import com.hashchat.messenger.message.dto.UpdateMessageStatusRequest;
 import com.hashchat.messenger.message.service.MessageService;
-import com.hashchat.messenger.user.service.UserIdentityService;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,8 +43,7 @@ class MessageControllerTest {
     @Mock Authentication authentication;
     @Mock SimpMessagingTemplate messagingTemplate;
     @Mock WebSocketAuthChannelInterceptor authInterceptor;
-    @Mock UserIdentityService userIdentityService;
-    @Mock ChatParticipantRepository participantRepository;
+    @Mock TypingService typingService;
 
     @InjectMocks MessageController messageController;
     @InjectMocks TypingController typingController;
@@ -172,11 +168,9 @@ class MessageControllerTest {
     @Test
     void typingSendsEventWhenSessionIsAuthenticatedAndUserIsParticipant() {
         TypingRequest request = new TypingRequest(100L, true);
-        var alice = TestFixtures.user(1L, "alice");
 
         when(authInterceptor.getUsernameBySessionId("session-1")).thenReturn("alice");
-        when(userIdentityService.resolve("alice")).thenReturn(Optional.of(alice));
-        when(participantRepository.existsByChatIdAndUserId(100L, 1L)).thenReturn(true);
+        when(typingService.isTypingAllowed("alice", 100L)).thenReturn(true);
 
         typingController.typing(request, "session-1");
 
@@ -204,11 +198,9 @@ class MessageControllerTest {
     @Test
     void typingDoesNotSendWhenUserIsNotChatParticipant() {
         TypingRequest request = new TypingRequest(100L, true);
-        var alice = TestFixtures.user(1L, "alice");
 
         when(authInterceptor.getUsernameBySessionId("session-1")).thenReturn("alice");
-        when(userIdentityService.resolve("alice")).thenReturn(Optional.of(alice));
-        when(participantRepository.existsByChatIdAndUserId(100L, 1L)).thenReturn(false);
+        when(typingService.isTypingAllowed("alice", 100L)).thenReturn(false);
 
         typingController.typing(request, "session-1");
 
