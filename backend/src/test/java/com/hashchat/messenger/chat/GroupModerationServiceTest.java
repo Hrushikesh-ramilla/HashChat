@@ -19,6 +19,7 @@ import com.hashchat.messenger.chat.dto.UpdateGroupParticipantsRequest;
 import com.hashchat.messenger.chat.dto.UpdateGroupRoleRequest;
 import com.hashchat.messenger.chat.repository.ChatParticipantRepository;
 import com.hashchat.messenger.chat.repository.ChatRepository;
+import com.hashchat.messenger.chat.service.ChatOutboxService;
 import com.hashchat.messenger.chat.service.GroupModerationService;
 import com.hashchat.messenger.common.exception.ChatException;
 import com.hashchat.messenger.user.domain.User;
@@ -41,6 +42,7 @@ class GroupModerationServiceTest {
     @Mock ChatParticipantRepository participantRepository;
     @Mock ChatAccessService chatAccessService;
     @Mock ChatQueryService chatQueryService;
+    @Mock ChatOutboxService chatOutboxService;
 
     @InjectMocks GroupModerationService groupModerationService;
 

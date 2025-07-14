@@ -34,7 +34,6 @@ import com.hashchat.messenger.message.domain.MessageReaction;
 import com.hashchat.messenger.message.domain.MessageReceipt;
 import com.hashchat.messenger.message.dto.DeviceMessageEventResponse;
 import com.hashchat.messenger.message.dto.ReactionEvent;
-import com.hashchat.messenger.message.dto.TimelineEnvelopeDto;
 import com.hashchat.messenger.message.repository.MessageEnvelopeRepository;
 import com.hashchat.messenger.message.repository.MessageEventRepository;
 import com.hashchat.messenger.message.repository.MessageReactionRepository;
@@ -43,6 +42,7 @@ import com.hashchat.messenger.message.repository.MessageRepository;
 import com.hashchat.messenger.message.service.MessageDeleteService;
 import com.hashchat.messenger.message.service.MessageEditService;
 import com.hashchat.messenger.message.service.MessageFanoutService;
+import com.hashchat.messenger.message.service.MessageOutboxService;
 import com.hashchat.messenger.message.service.MessageReactionService;
 import com.hashchat.messenger.message.service.MessageReceiptService;
 import com.hashchat.messenger.message.service.MessageSendService;
@@ -89,6 +89,7 @@ class MessageServiceAdvancedTest {
 
     private MessageService messageService;
     private MessageFanoutService messageFanoutService;
+    private MessageOutboxService messageOutboxService;
     private MessageAccessService messageAccessService;
 
     private User alice;
@@ -115,28 +116,29 @@ class MessageServiceAdvancedTest {
                 messageEventRepository, messageReactionRepository, participantRepository,
                 userDeviceRepository, messagingTemplate, objectMapper, meterRegistry,
                 unreadService, onlineService, pushNotificationService, userIdentityService,
-                userRepository, outboxService
+                userRepository
         );
+        messageOutboxService = new MessageOutboxService(participantRepository, userDeviceRepository, outboxService);
 
         MessageSendService messageSendService = new MessageSendService(
                 messageRepository, messageEnvelopeRepository, chatRepository,
                 participantRepository, userDeviceRepository, messageAccessService,
-                messageFanoutService, chatAccessService
+                messageFanoutService, messageOutboxService, chatAccessService
         );
         MessageEditService messageEditService = new MessageEditService(
                 messageRepository, messageEnvelopeRepository, messageAccessService,
-                messageSendService, messageFanoutService
+                messageSendService, messageFanoutService, messageOutboxService
         );
         MessageDeleteService messageDeleteService = new MessageDeleteService(
-                messageRepository, messageAccessService, messageFanoutService
+                messageRepository, messageAccessService, messageFanoutService, messageOutboxService
         );
         MessageReceiptService messageReceiptService = new MessageReceiptService(
                 messageRepository, messageReceiptRepository, messageAccessService,
-                messageFanoutService, unreadService
+                messageFanoutService, messageOutboxService, unreadService
         );
         MessageReactionService messageReactionService = new MessageReactionService(
                 messageRepository, messageReactionRepository, messageAccessService,
-                messageFanoutService
+                messageFanoutService, messageOutboxService
         );
         MessageTimelineService messageTimelineService = new MessageTimelineService(
                 messageRepository, messageEnvelopeRepository, messageAccessService,

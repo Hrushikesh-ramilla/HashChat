@@ -18,6 +18,7 @@ import com.hashchat.messenger.crypto.device.UserDeviceRepository;
 import com.hashchat.messenger.infra.presence.OnlineService;
 import com.hashchat.messenger.infra.presence.UserStatusEvent;
 import com.hashchat.messenger.infra.security.JwtService;
+import com.hashchat.messenger.realtime.WebSocketSessionRegistry;
 import com.hashchat.messenger.user.domain.User;
 import com.hashchat.messenger.user.repository.UserRepository;
 
@@ -40,6 +41,7 @@ class WebSocketInfraTest {
     private UserRepository userRepository;
     private ChatParticipantRepository participantRepository;
     private MessageChannel channel;
+    private WebSocketSessionRegistry sessionRegistry;
     private WebSocketAuthChannelInterceptor interceptor;
 
     @BeforeEach
@@ -49,12 +51,14 @@ class WebSocketInfraTest {
         userRepository = mock(UserRepository.class);
         participantRepository = mock(ChatParticipantRepository.class);
         channel = mock(MessageChannel.class);
+        sessionRegistry = new WebSocketSessionRegistry();
 
         interceptor = new WebSocketAuthChannelInterceptor(
                 jwtService,
                 userDeviceRepository,
                 userRepository,
-                participantRepository
+                participantRepository,
+                sessionRegistry
         );
     }
 

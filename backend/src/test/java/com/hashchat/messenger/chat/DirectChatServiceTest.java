@@ -13,6 +13,7 @@ import com.hashchat.messenger.chat.access.ChatAccessService;
 import com.hashchat.messenger.chat.domain.Chat;
 import com.hashchat.messenger.chat.repository.ChatParticipantRepository;
 import com.hashchat.messenger.chat.repository.ChatRepository;
+import com.hashchat.messenger.chat.service.ChatOutboxService;
 import com.hashchat.messenger.chat.service.DirectChatService;
 import com.hashchat.messenger.common.exception.ChatException;
 import com.hashchat.messenger.user.domain.User;
@@ -33,6 +34,7 @@ class DirectChatServiceTest {
     @Mock ChatRepository chatRepository;
     @Mock ChatParticipantRepository participantRepository;
     @Mock ChatAccessService chatAccessService;
+    @Mock ChatOutboxService chatOutboxService;
 
     @InjectMocks DirectChatService directChatService;
 
