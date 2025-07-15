@@ -8,7 +8,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import com.hashchat.messenger.infra.ws.WebSocketAuthChannelInterceptor;
-import com.hashchat.messenger.message.application.TypingService;
+import com.hashchat.messenger.message.service.TypingService;
 import com.hashchat.messenger.message.dto.TypingEvent;
 import com.hashchat.messenger.message.dto.TypingRequest;
 

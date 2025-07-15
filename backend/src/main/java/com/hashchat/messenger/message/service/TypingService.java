@@ -1,4 +1,4 @@
-package com.hashchat.messenger.message.application;
+package com.hashchat.messenger.message.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

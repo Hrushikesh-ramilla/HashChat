@@ -14,7 +14,7 @@ import com.hashchat.messenger.crypto.dto.EncryptedEditMessageRequestV2;
 import com.hashchat.messenger.crypto.dto.EncryptedMessageEnvelopeInput;
 import com.hashchat.messenger.crypto.dto.EncryptedSendMessageRequestV2;
 import com.hashchat.messenger.infra.ws.WebSocketAuthChannelInterceptor;
-import com.hashchat.messenger.message.application.TypingService;
+import com.hashchat.messenger.message.service.TypingService;
 import com.hashchat.messenger.message.dto.DeviceMessageEventResponse;
 import com.hashchat.messenger.message.dto.MessageTimelineItemResponse;
 import com.hashchat.messenger.message.dto.ReactionEvent;
