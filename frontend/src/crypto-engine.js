@@ -337,7 +337,7 @@
     }
 
     function log(...args) {
-        console.log('[HashChatMessenger]', ...args);
+        console.warn('[HashChatMessenger]', ...args);
     }
 
     async function registerBundleOnServer(api, bundle, isNewDevice = false) {
