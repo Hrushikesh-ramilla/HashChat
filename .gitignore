@@ -28,7 +28,7 @@ backend/*.log
 
 # env / local
 .env
-.env.local
+.env.*
 *.local
 
 # Maven wrapper jar is usually allowed, but keep generated files out
@@ -41,8 +41,8 @@ logs/
 # backup dirs
 
 
-# docker (only root)
-/.dockerignore
+# docker
+.dockerignore
 
 # k8s overlay (user-specific)
 k8s/overlays/
