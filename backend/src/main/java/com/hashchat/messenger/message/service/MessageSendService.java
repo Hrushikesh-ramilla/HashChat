@@ -24,7 +24,6 @@ import com.hashchat.messenger.message.repository.MessageRepository;
 import com.hashchat.messenger.user.domain.User;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
