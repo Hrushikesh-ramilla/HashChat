@@ -179,6 +179,8 @@ class InfraSecurityTest {
         JwtService jwtService = new JwtService();
         ReflectionTestUtils.setField(jwtService, "secret", secret);
         ReflectionTestUtils.setField(jwtService, "expiration", expiration);
+        ReflectionTestUtils.setField(jwtService, "issuer", "hashchat");
+        ReflectionTestUtils.setField(jwtService, "audience", "hashchat-api");
         return jwtService;
     }
 }

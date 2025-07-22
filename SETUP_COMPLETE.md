@@ -1,3 +1,5 @@
+> **Legacy setup snapshot.** Use `README.md` and `VALIDATION_REPORT.md` for current commands and status.
+
 # HashChat — Complete Quick Setup
 
 
