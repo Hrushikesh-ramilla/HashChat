@@ -1,5 +1,6 @@
 package com.hashchat.messenger.outbox;
 
+import jakarta.annotation.PostConstruct;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -47,6 +48,18 @@ public class KafkaConfig {
 
     @Value("${hashchat.kafka.topic.replicas:1}")
     private int replicas;
+
+    @PostConstruct
+    void validateConfiguration() {
+        if (bootstrapServers == null || bootstrapServers.isBlank()) {
+            throw new IllegalStateException(
+                    "KAFKA_BOOTSTRAP_SERVERS is required when hashchat.kafka.enabled=true"
+            );
+        }
+        if (replicas < 1) {
+            throw new IllegalStateException("hashchat.kafka.topic.replicas must be at least 1");
+        }
+    }
 
     @Bean
     public NewTopic messageEventsTopic() {

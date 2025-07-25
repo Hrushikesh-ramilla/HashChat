@@ -1,0 +1,28 @@
+package com.hashchat.messenger.realtime;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import com.hashchat.messenger.crypto.device.CurrentDeviceService;
+import com.hashchat.messenger.crypto.device.UserDevice;
+import com.hashchat.messenger.realtime.dto.RealtimeSyncResponse;
+
+@RestController
+@RequestMapping("/api/realtime")
+@RequiredArgsConstructor
+public class RealtimeSyncController {
+
+    private final CurrentDeviceService currentDeviceService;
+    private final RealtimeEventStore realtimeEventStore;
+
+    @GetMapping("/sync")
+    public RealtimeSyncResponse sync(
+            @RequestParam(defaultValue = "0") long after,
+            @RequestParam(defaultValue = "200") int limit
+    ) {
+        UserDevice device = currentDeviceService.requireCurrentDevice();
+        return realtimeEventStore.readAfter(device.getDeviceId(), after, limit);
+    }
+}
