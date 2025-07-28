@@ -6,13 +6,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
+import com.hashchat.messenger.chat.dto.ChatIdResponse;
 import com.hashchat.messenger.chat.dto.ChatResponse;
 import com.hashchat.messenger.chat.dto.CreateGroupRequest;
+import com.hashchat.messenger.chat.dto.UpdateGroupParticipantsRequest;
 import com.hashchat.messenger.chat.service.ChatService;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
@@ -31,9 +32,9 @@ class ChatControllerTest {
         when(authentication.getName()).thenReturn("alice");
         when(chatService.createDirectChat("alice", 2L)).thenReturn(100L);
 
-        Map<String, Object> response = controller.createChat(2L, authentication);
+        ChatIdResponse response = controller.createChat(2L, authentication);
 
-        assertThat(response).containsEntry("chatId", 100L);
+        assertThat(response.chatId()).isEqualTo(100L);
         verify(chatService).createDirectChat("alice", 2L);
     }
 
@@ -42,9 +43,9 @@ class ChatControllerTest {
         when(authentication.getName()).thenReturn("alice");
         when(chatService.createOrGetSavedMessagesChat("alice")).thenReturn(101L);
 
-        Map<String, Object> response = controller.createSaved(authentication);
+        ChatIdResponse response = controller.createSaved(authentication);
 
-        assertThat(response).containsEntry("chatId", 101L);
+        assertThat(response.chatId()).isEqualTo(101L);
         verify(chatService).createOrGetSavedMessagesChat("alice");
     }
 
@@ -63,19 +64,29 @@ class ChatControllerTest {
                 "bob",
                 "Bob",
                 "Brown",
+                null,
                 "bob.png",
                 3L,
                 true,
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                "ACCEPTED",
+                1L,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         );
 
         when(authentication.getName()).thenReturn("alice");
-        when(chatService.getMyChats("alice")).thenReturn(List.of(chat));
+        when(chatService.getMyChats("alice", 0, 100)).thenReturn(List.of(chat));
 
-        List<ChatResponse> response = controller.getMyChats(authentication);
+        List<ChatResponse> response = controller.getMyChats(0, 100, authentication);
 
         assertThat(response).containsExactly(chat);
-        verify(chatService).getMyChats("alice");
+        verify(chatService).getMyChats("alice", 0, 100);
     }
 
     @Test
@@ -83,9 +94,9 @@ class ChatControllerTest {
         when(authentication.getName()).thenReturn("alice");
         when(chatService.createOrGetDirectChatByUsername("alice", "bob")).thenReturn(102L);
 
-        Map<String, Object> response = controller.createOrGetDirectByUsername("bob", authentication);
+        ChatIdResponse response = controller.createOrGetDirectByUsername("bob", authentication);
 
-        assertThat(response).containsEntry("chatId", 102L);
+        assertThat(response.chatId()).isEqualTo(102L);
         verify(chatService).createOrGetDirectChatByUsername("alice", "bob");
     }
 
@@ -96,9 +107,26 @@ class ChatControllerTest {
         when(authentication.getName()).thenReturn("alice");
         when(chatService.createGroupChat("alice", "Team", List.of(2L, 3L))).thenReturn(200L);
 
-        Map<String, Object> response = controller.createGroupChat(request, authentication);
+        ChatIdResponse response = controller.createGroupChat(request, authentication);
 
-        assertThat(response).containsEntry("chatId", 200L);
+        assertThat(response.chatId()).isEqualTo(200L);
         verify(chatService).createGroupChat("alice", "Team", List.of(2L, 3L));
+    }
+
+    @Test
+    void inviteParticipantsDelegatesToService() {
+        UpdateGroupParticipantsRequest request = new UpdateGroupParticipantsRequest(List.of(2L, 3L));
+        ChatResponse response = new ChatResponse(
+                200L, "GROUP", "Team", null, null, null, null, List.of(1L, 2L, 3L),
+                null, null, null, null, null, null, 0L, false, null, null, null,
+                null, null, "ALL", "ADMINS", "ADMINS", "OWNER", List.of()
+        );
+        when(authentication.getName()).thenReturn("alice");
+        when(chatService.inviteGroupParticipants("alice", 200L, request)).thenReturn(response);
+
+        ChatResponse actual = controller.inviteParticipants(200L, request, authentication);
+
+        assertThat(actual.chatId()).isEqualTo(200L);
+        verify(chatService).inviteGroupParticipants("alice", 200L, request);
     }
 }
