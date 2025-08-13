@@ -12,7 +12,6 @@ namespace: hashchat
 resources:
   - namespace.yaml
   - configmap.yaml
-  - secret.example.yaml
   - backend.yaml
   - frontend.yaml
   - ingress.yaml
