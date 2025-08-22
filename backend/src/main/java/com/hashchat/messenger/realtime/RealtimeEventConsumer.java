@@ -42,7 +42,7 @@ public class RealtimeEventConsumer {
                     KafkaConfig.USER_EVENTS_TOPIC,
                     KafkaConfig.SECURITY_EVENTS_TOPIC
             },
-            groupId = "${hashchat.kafka.realtime.group-id:hashchat-realtime-${random.uuid}}",
+            groupId = "${hashchat.kafka.realtime.group-id:hashchat-realtime}",
             containerFactory = "kafkaListenerContainerFactory"
     )
     @Transactional

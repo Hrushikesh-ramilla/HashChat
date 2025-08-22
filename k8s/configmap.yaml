@@ -15,6 +15,7 @@ data:
   HASHCHAT_KAFKA_ENABLED: "true"
   KAFKA_BOOTSTRAP_SERVERS: "hashchat-kafka-bootstrap:9092"
   HASHCHAT_KAFKA_CONSUMER_GROUP: "hashchat-workers"
-  # Must be unique per backend pod. Override with Downward API or Helm in real deployments.
-  HASHCHAT_KAFKA_REALTIME_GROUP_ID: "hashchat-realtime-$(HOSTNAME)"
+  # Shared across all backend pods. Redis pub/sub fans the event out to the pod that owns the socket.
+  HASHCHAT_KAFKA_REALTIME_GROUP_ID: "hashchat-realtime"
   HASHCHAT_KAFKA_TOPIC_REPLICAS: "3"
+  HIKARI_MAX_POOL_SIZE: "4"

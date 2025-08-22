@@ -6,7 +6,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import com.hashchat.messenger.crypto.device.CurrentDeviceService;
 import com.hashchat.messenger.crypto.device.UserDevice;
@@ -14,7 +13,6 @@ import com.hashchat.messenger.crypto.dto.EncryptedEditMessageRequestV2;
 import com.hashchat.messenger.crypto.dto.EncryptedMessageEnvelopeInput;
 import com.hashchat.messenger.crypto.dto.EncryptedSendMessageRequestV2;
 import com.hashchat.messenger.infra.ws.WebSocketAuthChannelInterceptor;
-import com.hashchat.messenger.message.service.TypingService;
 import com.hashchat.messenger.message.dto.DeviceMessageEventResponse;
 import com.hashchat.messenger.message.dto.MessageTimelineItemResponse;
 import com.hashchat.messenger.message.dto.ReactionEvent;
@@ -23,6 +21,8 @@ import com.hashchat.messenger.message.dto.TypingEvent;
 import com.hashchat.messenger.message.dto.TypingRequest;
 import com.hashchat.messenger.message.dto.UpdateMessageStatusRequest;
 import com.hashchat.messenger.message.service.MessageService;
+import com.hashchat.messenger.message.service.TypingService;
+import com.hashchat.messenger.realtime.StompEventPublisher;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,7 +41,7 @@ class MessageControllerTest {
     @Mock MessageService messageService;
     @Mock CurrentDeviceService currentDeviceService;
     @Mock Authentication authentication;
-    @Mock SimpMessagingTemplate messagingTemplate;
+    @Mock StompEventPublisher stompEventPublisher;
     @Mock WebSocketAuthChannelInterceptor authInterceptor;
     @Mock TypingService typingService;
 
@@ -175,7 +175,7 @@ class MessageControllerTest {
         typingController.typing(request, "session-1");
 
         ArgumentCaptor<TypingEvent> captor = ArgumentCaptor.forClass(TypingEvent.class);
-        verify(messagingTemplate).convertAndSend(eq("/topic/chats/100/typing"), captor.capture());
+        verify(stompEventPublisher).publishGlobal(eq("/topic/chats/100/typing"), captor.capture());
 
         assertThat(captor.getValue().username()).isEqualTo("alice");
         assertThat(captor.getValue().typing()).isTrue();
@@ -189,7 +189,7 @@ class MessageControllerTest {
 
         typingController.typing(request, "session-1");
 
-        verify(messagingTemplate, never()).convertAndSend(
+        verify(stompEventPublisher, never()).publishGlobal(
                 eq("/topic/chats/100/typing"),
                 org.mockito.ArgumentMatchers.any(TypingEvent.class)
         );
@@ -204,7 +204,7 @@ class MessageControllerTest {
 
         typingController.typing(request, "session-1");
 
-        verify(messagingTemplate, never()).convertAndSend(
+        verify(stompEventPublisher, never()).publishGlobal(
                 eq("/topic/chats/100/typing"),
                 org.mockito.ArgumentMatchers.any(TypingEvent.class)
         );

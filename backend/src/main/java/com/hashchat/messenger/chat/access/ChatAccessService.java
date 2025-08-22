@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import com.hashchat.messenger.chat.domain.Chat;
 import com.hashchat.messenger.chat.domain.ChatParticipant;
@@ -15,6 +14,7 @@ import com.hashchat.messenger.chat.dto.ChatListUpdateEvent;
 import com.hashchat.messenger.chat.repository.ChatParticipantRepository;
 import com.hashchat.messenger.chat.repository.ChatRepository;
 import com.hashchat.messenger.common.exception.ChatException;
+import com.hashchat.messenger.realtime.StompEventPublisher;
 import java.util.Objects;
 
 @Slf4j
@@ -24,7 +24,7 @@ public class ChatAccessService {
 
     private final ChatRepository chatRepository;
     private final ChatParticipantRepository participantRepository;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final StompEventPublisher stompEventPublisher;
     private final MessageSource messageSource;
 
     @Value("${hashchat.kafka.enabled:false}")
@@ -153,8 +153,9 @@ public class ChatAccessService {
 
     public void notifyChatListUpdated(String username, Long chatId, String reason) {
         if (!kafkaEnabled) {
-            messagingTemplate.convertAndSend(
-                    "/topic/users/" + username + "/chats",
+            stompEventPublisher.publishToUser(
+                    username,
+                    "/chats",
                     ChatListUpdateEvent.forChat(chatId, reason)
             );
         }
@@ -162,8 +163,9 @@ public class ChatAccessService {
 
     public void notifyRequestsUpdated(String username, Long chatId, String reason) {
         if (!kafkaEnabled) {
-            messagingTemplate.convertAndSend(
-                    "/topic/users/" + username + "/requests",
+            stompEventPublisher.publishToUser(
+                    username,
+                    "/requests",
                     ChatListUpdateEvent.forChat(chatId, reason)
             );
         }

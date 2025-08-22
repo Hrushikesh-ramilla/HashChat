@@ -11,7 +11,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.data.domain.Pageable;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.hashchat.messenger.TestFixtures;
 import com.hashchat.messenger.chat.access.ChatAccessService;
 import com.hashchat.messenger.chat.domain.Message;
@@ -51,6 +50,7 @@ import com.hashchat.messenger.message.service.MessageService;
 import com.hashchat.messenger.message.service.MessageTimelineService;
 import com.hashchat.messenger.outbox.OutboxService;
 import com.hashchat.messenger.push.service.PushNotificationService;
+import com.hashchat.messenger.realtime.StompEventPublisher;
 import com.hashchat.messenger.user.domain.User;
 import com.hashchat.messenger.user.repository.UserRepository;
 import com.hashchat.messenger.user.service.UserIdentityService;
@@ -83,7 +83,7 @@ class MessageServiceAdvancedTest {
     @Mock UnreadService unreadService;
     @Mock OnlineService onlineService;
     @Mock PushNotificationService pushNotificationService;
-    @Mock SimpMessagingTemplate messagingTemplate;
+    @Mock StompEventPublisher stompEventPublisher;
     @Mock OutboxService outboxService;
     @Mock UserRepository userRepository;
     @Mock ChatAccessService chatAccessService;
@@ -115,7 +115,7 @@ class MessageServiceAdvancedTest {
         SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
         messageFanoutService = new MessageFanoutService(
                 messageEventRepository, messageReactionRepository, participantRepository,
-                userDeviceRepository, messagingTemplate, objectMapper, meterRegistry,
+                userDeviceRepository, stompEventPublisher, objectMapper, meterRegistry,
                 unreadService, onlineService, pushNotificationService, userIdentityService,
                 userRepository
         );
@@ -234,12 +234,14 @@ class MessageServiceAdvancedTest {
         assertThat(response.envelope()).isNotNull();
         assertThat(response.envelope().targetDeviceId()).isEqualTo("alice-phone");
 
-        verify(messagingTemplate).convertAndSend(
-                eq("/topic/devices/alice-phone/chats/100"),
+        verify(stompEventPublisher).publishToDevice(
+                eq("alice-phone"),
+                eq("/chats/100"),
                 isA(DeviceMessageEventResponse.class)
         );
-        verify(messagingTemplate).convertAndSend(
-                eq("/topic/devices/bob-phone/chats/100"),
+        verify(stompEventPublisher).publishToDevice(
+                eq("bob-phone"),
+                eq("/chats/100"),
                 isA(DeviceMessageEventResponse.class)
         );
     }
@@ -442,12 +444,14 @@ class MessageServiceAdvancedTest {
         assertThat(event.getEventType()).isEqualTo("EDIT");
         assertThat(event.getPayloadJson()).contains("\"version\":2");
 
-        verify(messagingTemplate).convertAndSend(
-                eq("/topic/devices/alice-phone/chats/100"),
+        verify(stompEventPublisher).publishToDevice(
+                eq("alice-phone"),
+                eq("/chats/100"),
                 isA(DeviceMessageEventResponse.class)
         );
-        verify(messagingTemplate).convertAndSend(
-                eq("/topic/devices/bob-phone/chats/100"),
+        verify(stompEventPublisher).publishToDevice(
+                eq("bob-phone"),
+                eq("/chats/100"),
                 isA(DeviceMessageEventResponse.class)
         );
     }
@@ -497,12 +501,14 @@ class MessageServiceAdvancedTest {
         assertThat(eventCaptor.getValue().getEventType()).isEqualTo("DELETE");
         assertThat(eventCaptor.getValue().getPayloadJson()).isEqualTo("{}");
 
-        verify(messagingTemplate).convertAndSend(
-                eq("/topic/devices/alice-phone/chats/100"),
+        verify(stompEventPublisher).publishToDevice(
+                eq("alice-phone"),
+                eq("/chats/100"),
                 isA(DeviceMessageEventResponse.class)
         );
-        verify(messagingTemplate).convertAndSend(
-                eq("/topic/devices/bob-phone/chats/100"),
+        verify(stompEventPublisher).publishToDevice(
+                eq("bob-phone"),
+                eq("/chats/100"),
                 isA(DeviceMessageEventResponse.class)
         );
     }
@@ -568,8 +574,9 @@ class MessageServiceAdvancedTest {
                 any(LocalDateTime.class)
         );
         verify(messageRepository).recalculateAggregateStatusesForChat(100L, bob.getId());
-        verify(messagingTemplate).convertAndSend(
-                eq("/topic/devices/alice-phone/status"),
+        verify(stompEventPublisher).publishToDevice(
+                eq("alice-phone"),
+                eq("/status"),
                 isA(Object.class)
         );
     }
@@ -603,8 +610,9 @@ class MessageServiceAdvancedTest {
                 any(LocalDateTime.class)
         );
         verify(messageRepository).recalculateAggregateStatusesForChat(100L, bob.getId());
-        verify(messagingTemplate).convertAndSend(
-                eq("/topic/devices/alice-phone/status"),
+        verify(stompEventPublisher).publishToDevice(
+                eq("alice-phone"),
+                eq("/status"),
                 isA(Object.class)
         );
     }
@@ -699,12 +707,14 @@ class MessageServiceAdvancedTest {
         assertThat(eventCaptor.getValue().getPayloadJson()).contains("\"emoji\":\"🔥\"");
         assertThat(eventCaptor.getValue().getPayloadJson()).contains("\"active\":false");
 
-        verify(messagingTemplate).convertAndSend(
-                eq("/topic/devices/alice-phone/chats/100"),
+        verify(stompEventPublisher).publishToDevice(
+                eq("alice-phone"),
+                eq("/chats/100"),
                 isA(ReactionEvent.class)
         );
-        verify(messagingTemplate).convertAndSend(
-                eq("/topic/devices/bob-phone/chats/100"),
+        verify(stompEventPublisher).publishToDevice(
+                eq("bob-phone"),
+                eq("/chats/100"),
                 isA(ReactionEvent.class)
         );
     }
