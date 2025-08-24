@@ -2,16 +2,13 @@ package com.hashchat.messenger.user.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.hashchat.messenger.chat.dto.ChatListUpdateEvent;
 import com.hashchat.messenger.chat.repository.ChatParticipantRepository;
-import com.hashchat.messenger.common.TransactionUtils;
 import com.hashchat.messenger.infra.security.JwtService;
+import com.hashchat.messenger.outbox.OutboxIds;
 import com.hashchat.messenger.outbox.OutboxService;
-import com.hashchat.messenger.realtime.StompEventPublisher;
 import com.hashchat.messenger.user.domain.User;
 import com.hashchat.messenger.user.dto.CurrentUserResponse;
 import com.hashchat.messenger.user.dto.UpdateProfileRequest;
@@ -34,11 +31,7 @@ public class UserService {
     private final UserIdentityService userIdentityService;
     private final JwtService jwtService;
     private final ChatParticipantRepository participantRepository;
-    private final StompEventPublisher stompEventPublisher;
     private final OutboxService outboxService;
-
-    @Value("${hashchat.kafka.enabled:false}")
-    private boolean kafkaEnabled;
 
     public UserSummaryResponse findByUsername(String username) {
         var user = userRepository.findByUsername(username)
@@ -126,7 +119,6 @@ public class UserService {
 
         Long updatedUserId = updated.id();
         writeProfileUpdatedOutboxEvent(updatedUserId);
-        TransactionUtils.afterCommit(() -> notifySharedChatsAboutProfileUpdate(updatedUserId));
 
         return new UpdateProfileResponse(
                 updated.id(),
@@ -160,27 +152,18 @@ public class UserService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private void notifySharedChatsAboutProfileUpdate(Long updatedUserId) {
-        if (!kafkaEnabled) {
-            ChatListUpdateEvent payload = ChatListUpdateEvent.profileUpdated(updatedUserId);
-            participantRepository.findDistinctUsernamesSharingChatsWithUserId(updatedUserId)
-                    .forEach(username -> stompEventPublisher.publishToUser(
-                            username,
-                            "/chats",
-                            payload
-                    ));
-        }
-    }
-
     private void writeProfileUpdatedOutboxEvent(Long updatedUserId) {
-        try {
-            var participantUsernames = participantRepository.findDistinctUsernamesSharingChatsWithUserId(updatedUserId);
-            outboxService.write("user", String.valueOf(updatedUserId), "PROFILE_UPDATED", Map.of(
-                    "userId", updatedUserId,
-                    "participantUsernames", participantUsernames
-            ));
-        } catch (Exception e) {
-            log.warn("Failed to write outbox event for profile update of user {}", updatedUserId, e);
-        }
+        var participantUsernames = participantRepository.findDistinctUsernamesSharingChatsWithUserId(updatedUserId);
+        outboxService.write(
+                "user",
+                String.valueOf(updatedUserId),
+                "PROFILE_UPDATED",
+                Map.of(
+                        "userId", updatedUserId,
+                        "participantUsernames", participantUsernames
+                ),
+                null,
+                OutboxIds.key("user", updatedUserId, "PROFILE_UPDATED", System.currentTimeMillis())
+        );
     }
 }

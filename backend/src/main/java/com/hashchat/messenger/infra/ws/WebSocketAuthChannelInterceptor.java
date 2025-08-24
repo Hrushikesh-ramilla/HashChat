@@ -13,6 +13,7 @@ import com.hashchat.messenger.chat.repository.ChatParticipantRepository;
 import com.hashchat.messenger.crypto.device.UserDevice;
 import com.hashchat.messenger.crypto.device.UserDeviceRepository;
 import com.hashchat.messenger.infra.security.JwtService;
+import com.hashchat.messenger.auth.service.RefreshTokenService;
 import com.hashchat.messenger.user.domain.User;
 import com.hashchat.messenger.realtime.WebSocketSessionRegistry;
 import com.hashchat.messenger.user.repository.UserRepository;
@@ -27,6 +28,7 @@ import java.util.List;
 public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
 
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
     private final UserDeviceRepository userDeviceRepository;
     private final UserRepository userRepository;
     private final ChatParticipantRepository participantRepository;
@@ -79,6 +81,11 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
             String username = jwtService.extractUsername(token);
             if (!jwtService.isTokenValid(token, username)) {
                 log.warn("WebSocket CONNECT denied: invalid token for user={}", username);
+                return null;
+            }
+            String sessionIdClaim = jwtService.extractSessionId(token);
+            if (sessionIdClaim != null && refreshTokenService.isFamilyRevoked(sessionIdClaim)) {
+                log.warn("WebSocket CONNECT denied: revoked session user={}", username);
                 return null;
             }
 

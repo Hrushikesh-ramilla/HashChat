@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.hashchat.messenger.chat.domain.Message;
-import com.hashchat.messenger.common.TransactionUtils;
 import com.hashchat.messenger.common.exception.MessageException;
 import com.hashchat.messenger.message.access.MessageAccessService;
 import com.hashchat.messenger.message.repository.MessageRepository;
@@ -47,15 +46,5 @@ public class MessageDeleteService {
 
         messageOutboxService.messageDeleted(message);
         messageOutboxService.chatListUpdated(message.getChatId(), "message_deleted");
-
-        final Message msgDelFinal = message;
-        TransactionUtils.afterCommit(() -> {
-            try {
-                messageFanoutService.fanoutDeleteEvent(msgDelFinal);
-                messageFanoutService.notifyChatListUpdated(msgDelFinal.getChatId(), "message_deleted");
-            } catch (Exception e) {
-                log.error("afterCommit delete fanout failed for message {}", msgDelFinal.getId(), e);
-            }
-        });
     }
 }

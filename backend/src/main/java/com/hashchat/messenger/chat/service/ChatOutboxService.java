@@ -3,6 +3,7 @@ package com.hashchat.messenger.chat.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.hashchat.messenger.chat.repository.ChatParticipantRepository;
+import com.hashchat.messenger.outbox.OutboxIds;
 import com.hashchat.messenger.outbox.OutboxService;
 
 import java.util.HashMap;
@@ -29,6 +30,14 @@ public class ChatOutboxService {
         payload.put("eventType", reason.toUpperCase());
         payload.put("reason", reason);
         payload.put("participantUsernames", participantRepository.findDistinctUsernamesByChatId(chatId));
-        outboxService.write(request ? "request" : "chat", String.valueOf(chatId), reason.toUpperCase(), payload);
+        String aggregate = request ? "request" : "chat";
+        outboxService.write(
+                aggregate,
+                String.valueOf(chatId),
+                reason.toUpperCase(),
+                payload,
+                null,
+                OutboxIds.chatKey(chatId, reason)
+        );
     }
 }

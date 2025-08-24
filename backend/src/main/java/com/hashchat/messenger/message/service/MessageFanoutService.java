@@ -4,32 +4,24 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import com.hashchat.messenger.chat.domain.Message;
-import com.hashchat.messenger.chat.dto.ChatListUpdateEvent;
 import com.hashchat.messenger.chat.repository.ChatParticipantRepository;
 import com.hashchat.messenger.common.exception.MessageException;
-import com.hashchat.messenger.crypto.device.UserDevice;
-import com.hashchat.messenger.crypto.device.UserDeviceRepository;
 import com.hashchat.messenger.infra.presence.OnlineService;
 import com.hashchat.messenger.infra.presence.UnreadService;
 import com.hashchat.messenger.message.domain.MessageEnvelope;
 import com.hashchat.messenger.message.domain.MessageEvent;
 import com.hashchat.messenger.message.domain.MessageReaction;
 import com.hashchat.messenger.message.dto.DeviceMessageEventResponse;
-import com.hashchat.messenger.message.dto.ReactionEvent;
 import com.hashchat.messenger.message.dto.TimelineEnvelopeDto;
 import com.hashchat.messenger.message.repository.MessageEventRepository;
 import com.hashchat.messenger.message.repository.MessageReactionRepository;
 import com.hashchat.messenger.push.service.PushNotificationService;
-import com.hashchat.messenger.realtime.StompEventPublisher;
 import com.hashchat.messenger.user.domain.User;
 import com.hashchat.messenger.user.repository.UserRepository;
-import com.hashchat.messenger.user.service.UserIdentityService;
 
 import java.time.LocalDateTime;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -46,108 +38,12 @@ public class MessageFanoutService {
     private final MessageEventRepository messageEventRepository;
     private final MessageReactionRepository messageReactionRepository;
     private final ChatParticipantRepository participantRepository;
-    private final UserDeviceRepository userDeviceRepository;
-    private final StompEventPublisher stompEventPublisher;
     private final ObjectMapper objectMapper;
     private final MeterRegistry meterRegistry;
     private final UnreadService unreadService;
     private final OnlineService onlineService;
     private final PushNotificationService pushNotificationService;
-    private final UserIdentityService userIdentityService;
     private final UserRepository userRepository;
-
-    @Value("${hashchat.kafka.enabled:false}")
-    private boolean kafkaEnabled;
-
-    private record StatusBulkUpdateEvent(String type, Long chatId, String status, Long actorUserId) {
-    }
-
-    private record StatusUpdateEvent(Long messageId, String status) {
-    }
-
-    public void fanoutCreatedEvent(Message message, Map<String, MessageEnvelope> byDevice) {
-        if (!kafkaEnabled) {
-            byDevice.forEach((deviceId, envelope) -> stompEventPublisher.publishToDevice(
-                    deviceId,
-                    "/chats/" + message.getChatId(),
-                    toDeviceEvent("MESSAGE_CREATED", message, envelope, Map.of(), Set.of())
-            ));
-        }
-    }
-
-    public void fanoutEditedEvent(Message message, Map<String, MessageEnvelope> byDevice) {
-        if (!kafkaEnabled) {
-            byDevice.forEach((deviceId, envelope) -> stompEventPublisher.publishToDevice(
-                    deviceId,
-                    "/chats/" + message.getChatId(),
-                    toDeviceEvent("MESSAGE_EDITED", message, envelope, envelope.getTargetUserId())
-            ));
-        }
-    }
-
-    public void fanoutDeleteEvent(Message message) {
-        if (!kafkaEnabled) {
-            List<Long> participants = participantRepository.findUserIdsByChatId(message.getChatId()).stream()
-                    .distinct()
-                    .toList();
-            if (!participants.isEmpty()) {
-                userDeviceRepository.findActiveByUserIdsWithUser(participants).forEach(device ->
-                        stompEventPublisher.publishToDevice(
-                                device.getDeviceId(),
-                                "/chats/" + message.getChatId(),
-                                toDeviceEvent("MESSAGE_DELETED", message, null, device.getUser().getId())
-                        )
-                );
-            }
-        }
-    }
-
-    public void fanoutReactionEvent(Long chatId, ReactionEvent event) {
-        if (!kafkaEnabled) {
-            List<Long> participants = participantRepository.findUserIdsByChatId(chatId).stream()
-                    .distinct()
-                    .toList();
-            if (!participants.isEmpty()) {
-                userDeviceRepository.findByUserIdInAndActiveTrue(participants).forEach(device ->
-                        stompEventPublisher.publishToDevice(
-                                device.getDeviceId(),
-                                "/chats/" + chatId,
-                                event
-                        )
-                );
-            }
-        }
-        notifyChatListUpdated(chatId, "message_reaction");
-    }
-
-    public void sendStatusToSenderDevices(Message message, String status) {
-        if (!kafkaEnabled) {
-            for (UserDevice device : userDeviceRepository.findByUserIdAndActiveTrue(message.getSenderId())) {
-                stompEventPublisher.publishToDevice(
-                        device.getDeviceId(),
-                        "/status",
-                        new StatusUpdateEvent(message.getId(), status)
-                );
-            }
-        }
-    }
-
-    public void sendBulkStatusToSenderDevices(Collection<Long> senderIds, Long chatId, String status, Long actorUserId) {
-        if (senderIds == null || senderIds.isEmpty()) {
-            return;
-        }
-
-        if (!kafkaEnabled) {
-            StatusBulkUpdateEvent event = new StatusBulkUpdateEvent("delivery_bulk", chatId, status, actorUserId);
-            userDeviceRepository.findByUserIdInAndActiveTrue(senderIds).forEach(device ->
-                    stompEventPublisher.publishToDevice(
-                            device.getDeviceId(),
-                            "/status",
-                            event
-                    )
-            );
-        }
-    }
 
     public void saveMessageEvent(Message message, Long actorUserId, String eventType, Map<String, Object> payload) {
         try {
@@ -162,15 +58,6 @@ public class MessageFanoutService {
             incrementCounter("message_events_total");
         } catch (Exception e) {
             throw new MessageException("Failed to persist message event", e);
-        }
-    }
-
-    public void notifyChatListUpdated(Long chatId, String reason) {
-        if (!kafkaEnabled) {
-            ChatListUpdateEvent payload = ChatListUpdateEvent.forChat(chatId, reason);
-            participantRepository.findDistinctUsernamesByChatId(chatId).forEach(username ->
-                    stompEventPublisher.publishToUser(username, "/chats", payload)
-            );
         }
     }
 

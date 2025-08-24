@@ -12,7 +12,6 @@ data:
   HASHCHAT_ATTACHMENTS_STORAGE_PATH: "/app/attachments"
   VAPID_PUBLIC_KEY: ""
   # Kafka is expected to be provided by Strimzi/Redpanda/MSK/etc. in production.
-  HASHCHAT_KAFKA_ENABLED: "true"
   KAFKA_BOOTSTRAP_SERVERS: "hashchat-kafka-bootstrap:9092"
   HASHCHAT_KAFKA_CONSUMER_GROUP: "hashchat-workers"
   # Shared across all backend pods. Redis pub/sub fans the event out to the pod that owns the socket.

@@ -297,8 +297,10 @@ flowchart TB
 
     subgraph Events
         OUTBOX[(Transactional outbox)]
+        PUB[OutboxPublisher]
         KAFKA[Kafka / Redpanda]
-        WORKERS[Event consumers]
+        PROC[DomainEventProcessor]
+        DURABLE[(realtime_device_events)]
     end
 
     subgraph Observability
@@ -321,9 +323,11 @@ flowchart TB
     CHAT --> PG
     CHAT --> BLOB
     CHAT --> OUTBOX
-    OUTBOX --> KAFKA
-    KAFKA --> WORKERS
-    WORKERS --> RT
+    OUTBOX --> PUB
+    PUB --> KAFKA
+    KAFKA --> PROC
+    PROC --> DURABLE
+    PROC --> RT
     RT --> PG
     RT --> NGINX
     API --> ACT
@@ -332,6 +336,14 @@ flowchart TB
     PROM --> GRAFANA
     LOKI --> GRAFANA
 ```
+
+### Delivery contract
+
+One path for durable events. Domain services write the outbox in the same database transaction as the command. After commit, `OutboxPublisher` sends to Kafka. `RealtimeEventConsumer` is the only consumer: it appends a device-scoped durable log first, then notifies over STOMP/Redis and push. Typing and presence stay ephemeral and do not go through the outbox.
+
+Kafka is required. There is no in-process fallback. If the broker is down, outbox rows stay pending and retry.
+
+Idempotency is a business key on the outbox row. Redis WebSocket fan-out is a notification channel, not a second source of truth. Clients recover missed events through `/api/realtime/sync`.
 
 ### Technology stack
 
@@ -401,7 +413,7 @@ For local use:
 DOMAIN=localhost
 CORS_ORIGINS=https://localhost
 HASHCHAT_DEMO_ENABLED=false
-HASHCHAT_KAFKA_ENABLED=true
+KAFKA_BOOTSTRAP_SERVERS=localhost:19092
 ```
 
 ### 2. Start the stack
@@ -651,7 +663,6 @@ Current hardening status is tracked in [docs/PRODUCTION_READINESS.md](docs/PRODU
 | `DOMAIN` | Public hostname used by Caddy |
 | `CORS_ORIGINS` | Exact trusted web origin |
 | `HASHCHAT_DEMO_ENABLED` | Enables optional demo endpoints |
-| `HASHCHAT_KAFKA_ENABLED` | Enables Kafka/outbox event delivery |
 | `KAFKA_BOOTSTRAP_SERVERS` | Kafka-compatible broker addresses |
 | `HASHCHAT_ATTACHMENTS_STORAGE_PATH` | Reference ciphertext storage directory |
 | `HASHCHAT_ATTACHMENTS_MAX_BYTES` | Maximum encrypted upload size |

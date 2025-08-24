@@ -37,6 +37,49 @@ class ArchitectureTest {
     }
 
     @Test
+    void domainServicesMustNotPublishStompDirectly() {
+        ArchRule rule = ArchRuleDefinition.noClasses()
+                .that().resideInAnyPackage(
+                        "com.hashchat.messenger.chat.service..",
+                        "com.hashchat.messenger.chat.access..",
+                        "com.hashchat.messenger.message.service..",
+                        "com.hashchat.messenger.user.service.."
+                )
+                .should().dependOnClassesThat()
+                .haveSimpleName("StompEventPublisher");
+
+        rule.check(new ClassFileImporter()
+                .importPackages("com.hashchat.messenger"));
+    }
+
+    @Test
+    void domainServicesMustNotDependOnKafkaTemplate() {
+        ArchRule rule = ArchRuleDefinition.noClasses()
+                .that().resideInAnyPackage(
+                        "com.hashchat.messenger.chat.service..",
+                        "com.hashchat.messenger.chat.access..",
+                        "com.hashchat.messenger.message.service..",
+                        "com.hashchat.messenger.user.service.."
+                )
+                .should().dependOnClassesThat()
+                .haveSimpleName("KafkaTemplate");
+
+        rule.check(new ClassFileImporter()
+                .importPackages("com.hashchat.messenger"));
+    }
+
+    @Test
+    void outboxPublisherMustNotCallDomainEventProcessorDirectly() {
+        ArchRule rule = ArchRuleDefinition.noClasses()
+                .that().haveSimpleName("OutboxPublisher")
+                .should().dependOnClassesThat()
+                .haveSimpleName("DomainEventProcessor");
+
+        rule.check(new ClassFileImporter()
+                .importPackages("com.hashchat.messenger"));
+    }
+
+    @Test
     void restControllersShouldHaveRequestMapping() {
         ArchRule rule = ArchRuleDefinition.classes()
                 .that().areAnnotatedWith(RestController.class)
