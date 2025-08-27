@@ -37,12 +37,6 @@ It uses an original X3DH-inspired handshake and Double Ratchet-style protocol on
 
 
 
-<p align="center">
-  <img src="docs/assets/readme/hashchat-profile.png" width="448" alt="User profile: photo, @handle, online, bio, Mute Search Verify">
-  &nbsp;&nbsp;
-  <img src="docs/assets/readme/hashchat-safety.png" width="448" alt="Verify encryption: Safety Number and device fingerprint">
-</p>
-
 
 
 ---
