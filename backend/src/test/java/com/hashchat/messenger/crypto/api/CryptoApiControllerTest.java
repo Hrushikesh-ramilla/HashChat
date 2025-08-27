@@ -35,6 +35,7 @@ class CryptoApiControllerTest {
     @Mock DeviceRegistrationTokenService deviceRegTokenService;
     @Mock PreKeyService preKeyService;
     @Mock CurrentDeviceService currentDeviceService;
+    @Mock com.hashchat.messenger.auth.service.CredentialRateLimiter credentialRateLimiter;
     @Mock Authentication authentication;
 
     @InjectMocks DeviceController deviceController;

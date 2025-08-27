@@ -14,6 +14,7 @@ import com.hashchat.messenger.auth.dto.TokenRefreshResponse;
 import com.hashchat.messenger.auth.dto.UsernameAvailabilityResponse;
 import com.hashchat.messenger.auth.dto.VerifyCodeResponse;
 import com.hashchat.messenger.infra.security.JwtService;
+import com.hashchat.messenger.infra.ws.WebSocketLogoutCloser;
 import com.hashchat.messenger.user.domain.User;
 import com.hashchat.messenger.user.domain.UserStatus;
 import com.hashchat.messenger.user.repository.UserRepository;
@@ -34,6 +35,7 @@ public class AuthService {
     private final SetupTokenService setupTokenService;
     private final PasswordEncoder passwordEncoder;
     private final CredentialRateLimiter credentialRateLimiter;
+    private final WebSocketLogoutCloser webSocketLogoutCloser;
 
     @Transactional(readOnly = true)
     public AccountExistsResponse accountExists(String phone) {
@@ -67,7 +69,7 @@ public class AuthService {
         Long userId = null;
         String username = null;
 
-        if (result.token() != null) {
+        if ("ok".equals(result.status())) {
             if (result.newUser()) {
                 setupToken = setupTokenService.issue(normalized);
             } else {
@@ -142,7 +144,10 @@ public class AuthService {
     }
 
     public LogoutResponse logout(String refreshToken) {
-        refreshTokenService.revoke(refreshToken);
+        String username = refreshTokenService.revoke(refreshToken);
+        if (username != null) {
+            webSocketLogoutCloser.closeSessionsForUsername(username);
+        }
         return new LogoutResponse(true);
     }
 
@@ -150,6 +155,7 @@ public class AuthService {
     public AuthResponse registerEmail(String rawEmail, String password, String requestedUsername,
                                       String firstName, String lastName, String avatarUrl) {
         String email = normalizeEmail(rawEmail);
+        credentialRateLimiter.checkRegister(email);
         if (userRepository.existsByEmail(email)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email is already registered");
         }

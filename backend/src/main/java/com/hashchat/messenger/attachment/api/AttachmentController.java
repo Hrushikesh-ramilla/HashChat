@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import com.hashchat.messenger.attachment.access.AttachmentAccessService;
+import com.hashchat.messenger.auth.service.CredentialRateLimiter;
 import com.hashchat.messenger.attachment.domain.EncryptedAttachment;
 import com.hashchat.messenger.attachment.service.AttachmentStorageService;
 import com.hashchat.messenger.user.domain.User;
@@ -36,6 +37,7 @@ public class AttachmentController {
     private final AttachmentStorageService attachmentStorageService;
     private final UserIdentityService userIdentityService;
     private final AttachmentAccessService attachmentAccessService;
+    private final CredentialRateLimiter credentialRateLimiter;
 
     @Operation(summary = "Upload encrypted file")
     @PostMapping("/upload")
@@ -48,6 +50,7 @@ public class AttachmentController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Encrypted attachment is empty");
         }
         User user = userIdentityService.require(auth.getName());
+        credentialRateLimiter.checkUserAction(user.getUsername(), "attachment");
         if (!attachmentAccessService.canUpload(chatId, user.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to chat attachments");
         }
@@ -69,6 +72,7 @@ public class AttachmentController {
         EncryptedAttachment attachment = attachmentStorageService.findByAttachmentId(attachmentId);
 
         User currentUser = userIdentityService.require(auth.getName());
+        credentialRateLimiter.checkUserAction(currentUser.getUsername(), "attachment");
         if (!attachmentAccessService.canDownload(attachment, currentUser.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to attachment");
         }

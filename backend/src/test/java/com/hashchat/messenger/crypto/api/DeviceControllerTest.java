@@ -30,6 +30,8 @@ class DeviceControllerTest {
 
     @Mock DeviceService deviceService;
     @Mock DeviceRegistrationTokenService deviceRegTokenService;
+    @Mock com.hashchat.messenger.crypto.device.CurrentDeviceService currentDeviceService;
+    @Mock com.hashchat.messenger.auth.service.CredentialRateLimiter credentialRateLimiter;
     @Mock Authentication authentication;
 
     @InjectMocks DeviceController deviceController;

@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.hashchat.messenger.auth.domain.VerificationCode;
 import com.hashchat.messenger.auth.repository.VerificationCodeRepository;
 import com.hashchat.messenger.infra.sms.SmsSender;
-import com.hashchat.messenger.infra.security.JwtService;
 import com.hashchat.messenger.user.domain.User;
 import com.hashchat.messenger.user.domain.UserStatus;
 import com.hashchat.messenger.user.repository.UserRepository;
@@ -30,7 +29,6 @@ public class PhoneVerificationService {
     private final VerificationCodeRepository codeRepo;
     private final SmsSender smsSender;
     private final UserRepository userRepository;
-    private final JwtService jwtService;
     private final SmsRateLimiter rateLimiter;
     private final PasswordEncoder passwordEncoder;
 
@@ -102,13 +100,12 @@ public class PhoneVerificationService {
                 return userRepository.save(created);
             });
 
-            String token = jwtService.generateToken(user.getUsername());
             boolean isNewUser = !existedBefore;
             return new VerificationResult(
                     "ok",
                     existedBefore,
                     isNewUser,
-                    token,
+                    null,
                     user.getId(),
                     user.getUsername()
             );

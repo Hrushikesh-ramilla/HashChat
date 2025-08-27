@@ -23,6 +23,7 @@ class EmailAuthControllerTest {
 
     @Mock AuthService authService;
     @Mock RefreshCookieService refreshCookieService;
+    @Mock com.hashchat.messenger.auth.service.CredentialRateLimiter credentialRateLimiter;
 
     @InjectMocks EmailAuthController controller;
 

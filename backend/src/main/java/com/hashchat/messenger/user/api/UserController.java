@@ -1,5 +1,6 @@
 package com.hashchat.messenger.user.api;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -17,6 +18,7 @@ import com.hashchat.messenger.user.dto.UpdateProfileRequest;
 import com.hashchat.messenger.user.dto.UpdateProfileResponse;
 import com.hashchat.messenger.user.dto.UserProfileResponse;
 import com.hashchat.messenger.user.dto.UserSearchResponse;
+import com.hashchat.messenger.infra.security.JwtAuthenticationFilter;
 import com.hashchat.messenger.user.service.UserService;
 
 import java.util.List;
@@ -50,7 +52,12 @@ public class UserController {
 
     @Operation(summary = "Update profile", description = "Returns the updated profile and a new JWT if the username changed.")
     @PutMapping("/profile")
-    public UpdateProfileResponse updateProfile(Authentication authentication, @Valid @RequestBody UpdateProfileRequest request) {
-        return userService.updateProfile(authentication.getName(), request);
+    public UpdateProfileResponse updateProfile(
+            Authentication authentication,
+            @Valid @RequestBody UpdateProfileRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        String sessionId = (String) httpRequest.getAttribute(JwtAuthenticationFilter.SESSION_ID_ATTRIBUTE);
+        return userService.updateProfile(authentication.getName(), request, sessionId);
     }
 }
