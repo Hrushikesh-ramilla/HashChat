@@ -11,6 +11,7 @@ import com.hashchat.messenger.crypto.device.CurrentDeviceService;
 import com.hashchat.messenger.crypto.dto.DeviceBundleDto;
 import com.hashchat.messenger.crypto.dto.PreKeyBundleResponse;
 import com.hashchat.messenger.crypto.dto.ResolvedChatDevicesResponse;
+import com.hashchat.messenger.auth.service.CredentialRateLimiter;
 import com.hashchat.messenger.crypto.prekey.PreKeyService;
 
 @RestController
@@ -20,6 +21,7 @@ public class BundleController {
 
     private final PreKeyService preKeyService;
     private final CurrentDeviceService currentDeviceService;
+    private final CredentialRateLimiter credentialRateLimiter;
 
     @GetMapping("/bundle/{username}")
     public PreKeyBundleResponse getBundle(@PathVariable String username, Authentication authentication) {
@@ -40,6 +42,7 @@ public class BundleController {
             Authentication authentication
     ) {
         currentDeviceService.requireCurrentDevice();
+        credentialRateLimiter.checkUserAction(authentication.getName(), "prekey");
         return preKeyService.reserveChatDeviceOneTimePreKey(authentication.getName(), chatId, targetDeviceId);
     }
 }
