@@ -10,6 +10,7 @@ import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 import com.hashchat.messenger.chat.repository.ChatParticipantRepository;
+import com.hashchat.messenger.crypto.device.DeviceSessionBinder;
 import com.hashchat.messenger.crypto.device.UserDevice;
 import com.hashchat.messenger.crypto.device.UserDeviceRepository;
 import com.hashchat.messenger.infra.security.JwtService;
@@ -33,6 +34,7 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
     private final UserRepository userRepository;
     private final ChatParticipantRepository participantRepository;
     private final WebSocketSessionRegistry sessionRegistry;
+    private final DeviceSessionBinder deviceSessionBinder;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -113,6 +115,7 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
             Principal userPrincipal = () -> username;
 
             sessionRegistry.register(sessionId, username, deviceId, sessionIdClaim);
+            deviceSessionBinder.bind(username, deviceId, sessionIdClaim);
 
             accessor.setUser(userPrincipal);
             accessor.getSessionAttributes().put("username", username);

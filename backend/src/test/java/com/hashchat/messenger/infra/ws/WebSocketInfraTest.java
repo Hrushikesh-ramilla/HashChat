@@ -62,7 +62,8 @@ class WebSocketInfraTest {
                 userDeviceRepository,
                 userRepository,
                 participantRepository,
-                sessionRegistry
+                sessionRegistry,
+                mock(com.hashchat.messenger.crypto.device.DeviceSessionBinder.class)
         );
     }
 

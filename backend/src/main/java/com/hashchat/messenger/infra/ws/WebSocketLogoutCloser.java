@@ -2,6 +2,7 @@ package com.hashchat.messenger.infra.ws;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import com.hashchat.messenger.auth.service.RefreshTokenService;
 import com.hashchat.messenger.realtime.WebSocketSessionRegistry;
 
 @Component
@@ -10,6 +11,7 @@ public class WebSocketLogoutCloser {
 
     private final WebSocketSessionRegistry sessionRegistry;
     private final WebSocketNativeSessionTracker nativeSessions;
+    private final RefreshTokenService refreshTokenService;
 
     public void closeSessionsForUsername(String username) {
         if (username == null || username.isBlank()) {
@@ -26,6 +28,7 @@ public class WebSocketLogoutCloser {
             return;
         }
         for (String sessionId : sessionRegistry.sessionIdsForDevice(deviceId)) {
+            refreshTokenService.revokeFamily(sessionRegistry.familyId(sessionId));
             nativeSessions.close(sessionId);
             sessionRegistry.unregister(sessionId);
         }
