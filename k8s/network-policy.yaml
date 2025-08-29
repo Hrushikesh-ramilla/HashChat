@@ -1,0 +1,70 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: hashchat-default-deny
+  namespace: hashchat
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: hashchat-backend
+  namespace: hashchat
+spec:
+  podSelector:
+    matchLabels:
+      app: hashchat-backend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: hashchat-frontend
+      ports:
+        - protocol: TCP
+          port: 8080
+    - ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9091
+  egress:
+    - {}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: hashchat-frontend
+  namespace: hashchat
+spec:
+  podSelector:
+    matchLabels:
+      app: hashchat-frontend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: hashchat-backend
+      ports:
+        - protocol: TCP
+          port: 8080
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

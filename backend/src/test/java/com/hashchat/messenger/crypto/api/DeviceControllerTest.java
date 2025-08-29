@@ -32,6 +32,7 @@ class DeviceControllerTest {
     @Mock DeviceRegistrationTokenService deviceRegTokenService;
     @Mock com.hashchat.messenger.crypto.device.CurrentDeviceService currentDeviceService;
     @Mock com.hashchat.messenger.auth.service.CredentialRateLimiter credentialRateLimiter;
+    @Mock com.hashchat.messenger.infra.ws.WebSocketLogoutCloser webSocketLogoutCloser;
     @Mock Authentication authentication;
 
     @InjectMocks DeviceController deviceController;
@@ -221,5 +222,6 @@ class DeviceControllerTest {
 
         assertThat(response).isSameAs(expected);
         verify(deviceService).deactivateDevice("alice", 1L, true, "dev-a");
+        verify(webSocketLogoutCloser).closeSessionsForDevice("dev-a");
     }
 }

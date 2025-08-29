@@ -18,6 +18,7 @@ import com.hashchat.messenger.crypto.prekey.OneTimePreKey;
 import com.hashchat.messenger.crypto.prekey.OneTimePreKeyRepository;
 import com.hashchat.messenger.crypto.prekey.SignedPreKey;
 import com.hashchat.messenger.crypto.prekey.SignedPreKeyRepository;
+import com.hashchat.messenger.outbox.OutboxService;
 import com.hashchat.messenger.user.domain.User;
 import com.hashchat.messenger.user.repository.UserRepository;
 import com.hashchat.messenger.user.service.UserIdentityService;
@@ -36,6 +37,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,6 +54,8 @@ class DeviceServiceTest {
     SignedPreKeyRepository signedPreKeyRepository;
     @Mock
     OneTimePreKeyRepository oneTimePreKeyRepository;
+    @Mock
+    OutboxService outboxService;
 
     @InjectMocks
     DeviceService deviceService;
@@ -210,6 +215,21 @@ class DeviceServiceTest {
 
             verify(oneTimePreKeyRepository, never()).deleteByDeviceId(anyLong());
             verify(oneTimePreKeyRepository, never()).save(any());
+        }
+
+        @Test
+        void rejectsNinthActiveDevice() throws Exception {
+            DeviceRegistrationRequest request = validRegistrationRequest("dev-9");
+
+            when(userIdentityService.require("alice")).thenReturn(alice);
+            when(userDeviceRepository.findByUserUsernameAndDeviceId("alice", "dev-9"))
+                    .thenReturn(Optional.empty());
+            when(userDeviceRepository.countByUserIdAndActiveTrue(alice.getId())).thenReturn(8L);
+
+            assertThatThrownBy(() -> deviceService.registerDevice("alice", request))
+                    .isInstanceOf(AuthException.class)
+                    .hasMessageContaining("8");
+            verify(userDeviceRepository, never()).save(any());
         }
 
         @Test
@@ -462,6 +482,14 @@ class DeviceServiceTest {
             assertThat(active.getLastSeen()).isNotNull();
 
             verify(userDeviceRepository).save(active);
+            verify(outboxService).write(
+                    eq("device"),
+                    eq("dev-1"),
+                    eq("DEVICE_REVOKED"),
+                    any(),
+                    isNull(),
+                    eq("device:1:dev-1:REVOKED")
+            );
         }
 
         @Test
